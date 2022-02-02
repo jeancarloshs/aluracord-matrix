@@ -1,10 +1,27 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Como fazer AJAX: https://medium.com/@omariosouto/entendendo-como-fazer-ajax-com-a-fetchapi-977ff20da3c6
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzY4OTk3MCwiZXhwIjoxOTU5MjY1OTcwfQ.6573bF3uDhbDiiaeJN7lcbXa6abLaYRQBaX_dCs2G6U';
+const SUPABASE_URL = 'https://zrontyfvgydkykxtfvzb.supabase.co';
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function ChatPage() {
     const [mensagem, setMensagem] = React.useState('');
     const [listaDeMensagens, setListaDeMensagens] = React.useState([]); // lista de array vazia
+
+    React.useEffect(() => {
+        supabaseClient
+            .from('mensagens')
+            .select('*')
+            .order('id', { ascending: false })
+            .then(({ data }) => {
+                console.log("Dados da consulta", data);
+                setListaDeMensagens(data);
+            })
+    }, []);
 
     /*
     // Usuário
@@ -12,6 +29,9 @@ export default function ChatPage() {
     - Aperta enter para enviar
     - Criar um botão para enviar a mensagem (desafio)
     - Adicionar um botão para excluir a msg do chat (desafio - dica: usar filter no array ao inves do map)
+    - Colocar um loading enquanto aguarda a msg no userEffect (desafio)
+    - Mouse hover na imagem do usuario, quando passar o mouse abrir o profile com link do github, informações da api, entre outras info. (Desafio)
+    - Mandar pool, enquete, mandar imagem, anexo, entre outras opções (desafio)
     - Tem que adicionar o texto na listagem
     
     // Dev
@@ -26,15 +46,25 @@ export default function ChatPage() {
 
     function handleNovaMensagem(novaMensagem) {
         const mensagem = {
-            id: listaDeMensagens.length + 1,
+            // id: listaDeMensagens.length + 1,
             de: 'vanessametonini',
             msg: novaMensagem,
         }
-        // chamada de back-end
-        setListaDeMensagens([
-            mensagem,
-            ...listaDeMensagens
-        ])
+
+        // Tem que ser um objeto com os MESMOS CAMPOS que você escreveu no SUPABASE
+        supabaseClient
+            .from('mensagem')
+            .insert([
+                mensagem
+            ])
+            .then(({ data }) => {
+                console.log('criando msg', data);
+                // chamada de back-end
+                setListaDeMensagens([
+                    data[0],
+                    ...listaDeMensagens,
+                ])
+            });
         setMensagem('');
     }
 
@@ -122,6 +152,35 @@ export default function ChatPage() {
                                 color: appConfig.theme.colors.neutrals[200],
                             }}
                         />
+                        <Button iconName="arrowRight"   // botão para enviar msg
+                            value={mensagem}
+                            onClick={(event) => {
+                                // onde está o valor ?
+                                const valor = event.target.value;
+                                // trocar o valor da variavel
+                                setMensagem(valor);
+                                handleNovaMensagem(mensagem);
+                            }}
+                            buttonColors={{
+                                contrastColor: '#CBD2D9',
+                                mainColor: '#181F25',
+                                mainColorLight: '#212931',
+                                mainColorStrong: '#212931'
+                            }}
+                            styleSheet={{
+                                width: '100%',
+                                border: '0',
+                                resize: 'none',
+                                borderRadius: '5px',
+                                padding: '6px 8px',
+                                //backgroundColor: appConfig.theme.colors.neutrals[800],
+                                marginBottom: '7px',
+                                // color: appConfig.theme.colors.neutrals[200],
+                                // hover: {
+                                //    backgroundColor: appConfig.theme.colors.neutrals[700],
+                                //}
+                            }}
+                        />
                     </Box>
                 </Box>
             </Box>
@@ -148,7 +207,7 @@ function Header() {
 }
 
 function MessageList(props) {
-    console.log('MessageList', props.listaDeMensagens);
+    // console.log('MessageList', props.listaDeMensagens);
     return (
         <Box
             tag="ul"
@@ -188,7 +247,28 @@ function MessageList(props) {
                                     display: 'inline-block',
                                     marginRight: '8px',
                                 }}
-                                src={`https://github.com/vanessametonini.png`}
+                                src={`https://github.com/${mensagem.de}.png`}
+                            />
+                            <Button iconName="trash"
+                                buttonColors={{
+                                    contrastColor: '#CBD2D9',
+                                    mainColor: '#181F25',
+                                    mainColorLight: '#212931',
+                                    mainColorStrong: '#212931'
+                                }}
+                                styleSheet={{
+                                    width: '100%',
+                                    border: '0',
+                                    resize: 'none',
+                                    marginLeft: '691px',
+                                    borderRadius: '5px',
+                                    padding: '6px 8px',
+                                    //backgroundColor: appConfig.theme.colors.neutrals[800],
+                                    marginBottom: '7px',
+                                    hover: {
+                                        backgroundColor: appConfig.theme.colors.neutrals[600],
+                                    }
+                                }}
                             />
                             <Text tag="strong">
                                 {mensagem.de}
